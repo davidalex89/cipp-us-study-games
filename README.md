@@ -10,7 +10,7 @@ file with no dependencies.
 
 | Mode | What it drills |
 |---|---|
-| Court Cases | 17 cases matched to their holdings, Olmstead through Carpenter |
+| Court Cases | 16 cases matched to their holdings, Olmstead through Carpenter |
 | Law Names | 12 acronyms expanded |
 | Law → Requirement | The specific obligation each statute imposes |
 | State Law Features | What distinguishes each state comprehensive law |
