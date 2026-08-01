@@ -90,6 +90,7 @@
 <p class="sub" id="mode-sub">Tap a card on the left, then its match on the right.</p>
 
 <div class="tabs">
+  <div class="tab" data-mode="articles">Article → Purpose</div>
   <div class="tab" data-mode="cases">Court Cases</div>
   <div class="tab" data-mode="acronyms">Law Names</div>
   <div class="tab" data-mode="holdings">Law → Requirement</div>
@@ -142,6 +143,15 @@
 
 <script>
 const DATA = {
+  articles: [
+    ["Article I", "Legislative branch — Congress, and the Commerce Clause power most federal privacy law rests on"],
+    ["Article II", "Executive branch — the President, and the departments and agencies that enforce federal law"],
+    ["Article III", "Judicial branch — federal courts, and the case-or-controversy requirement behind standing"],
+    ["Article IV", "Relations among the states — full faith and credit, privileges and immunities, extradition"],
+    ["Article V", "The process for amending the Constitution"],
+    ["Article VI", "Supremacy Clause — the basis for federal preemption of state privacy laws"],
+    ["Article VII", "Ratification — nine states required to establish the Constitution"]
+  ],
   cases: [
     ["Olmstead v. United States", "Warrantless wiretap w/o trespass ruled not a search"],
     ["Katz v. United States", "Established the reasonable expectation of privacy test"],
@@ -329,7 +339,7 @@ document.getElementById('quiz-next').addEventListener('click', () => {
 });
 document.getElementById('quiz-reset').addEventListener('click', initQuiz);
 
-let mode = 'cases';
+let mode = 'articles';
 let leftItems, rightItems, selectedLeft, matched, wrongFlash;
 
 function shuffle(arr) {
@@ -509,7 +519,7 @@ document.querySelectorAll('.tab').forEach(tab => {
   });
 });
 
-document.querySelector('.tab[data-mode="cases"]').classList.add('active');
+document.querySelector('.tab[data-mode="articles"]').classList.add('active');
 initMatch();
 </script>
 </body>
