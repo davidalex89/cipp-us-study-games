@@ -32,10 +32,9 @@ endorsed by the IAPP, and it is not a substitute for the official body of
 knowledge — the exam covers considerably more ground than what is here.
 
 US privacy law moves. Cure periods sunset, agencies reorganise, and cases get
-overruled — this deck was corrected before publishing because it still taught
-*Roe* as live doctrine. Check anything you plan to rely on against a current
-source, and treat a wrong answer here as a prompt to go read the statute rather
-than as settled fact.
+overruled. Check anything you plan to rely on against a current source, and treat
+a wrong answer here as a prompt to go read the statute rather than as settled
+fact.
 
 ## Use
 
