@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPP/US Study Games</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 16px;
+    background: #ffffff;
+    color: #1a1a1a;
+  }
+  h1 { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #666; margin: 0 0 14px; }
+
+  .tabs {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
+  }
+  .tab {
+    font-size: 12px; padding: 7px 10px; border-radius: 999px;
+    border: 1.5px solid #d0d0d0; background: #fff; color: #444;
+    cursor: pointer; font-weight: 600;
+  }
+  .tab.active { background: #1a1a2e; border-color: #1a1a2e; color: #fff; }
+
+  .stats {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; font-size: 14px; color: #555;
+  }
+  .stats b { color: #1a1a1a; }
+  button.action {
+    font-size: 13px; padding: 6px 12px; border-radius: 6px;
+    border: 1.5px solid #1a1a2e; background: #fff; color: #1a1a2e;
+    cursor: pointer; font-weight: 600;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+  .card {
+    min-height: 58px; border-radius: 8px; border: 2px solid #d0d0d0;
+    display: flex; align-items: center; padding: 9px 11px;
+    font-size: 12.5px; line-height: 1.35; cursor: pointer;
+    word-break: break-word; background: #ffffff; color: #1a1a1a;
+  }
+  .card.left { font-weight: 700; }
+  .card.selected {
+    background: #1d4ed8; border-color: #1d4ed8; color: #ffffff; font-weight: 700;
+    box-shadow: 0 0 0 3px #bfdbfe;
+  }
+  .card.done {
+    background: #15803d; border-color: #15803d; color: #ffffff; font-weight: 700;
+  }
+  .card.done::before { content: "\2713  "; }
+  .card.wrong {
+    background: #b91c1c; border-color: #b91c1c; color: #ffffff; font-weight: 700;
+  }
+  .card.wrong::before { content: "\2717  "; }
+
+  /* Sort game specific */
+  .sort-pool { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; min-height: 44px; }
+  .sort-chip {
+    font-size: 12px; padding: 8px 12px; border-radius: 999px;
+    border: 2px solid #d0d0d0; background: #fff; color: #1a1a1a;
+    cursor: pointer; font-weight: 600;
+  }
+  .sort-chip.wrong { background: #fee2e2; border-color: #b91c1c; }
+  .sort-buckets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bucket {
+    border: 2px dashed #ccc; border-radius: 10px; padding: 10px; min-height: 140px;
+  }
+  .bucket-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; color: #444; }
+  .bucket-item {
+    font-size: 11.5px; padding: 6px 8px; border-radius: 6px; margin-bottom: 5px;
+    background: #dcfce7; color: #166534; font-weight: 600;
+  }
+
+  #win {
+    display: none; text-align: center; margin-top: 16px; padding: 12px;
+    background: #dcfce7; border-radius: 8px; color: #166534; font-size: 14px; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<h1>CIPP/US Study Games</h1>
+<p class="sub" id="mode-sub">Tap a card on the left, then its match on the right.</p>
+
+<div class="tabs">
+  <div class="tab" data-mode="cases">Court Cases</div>
+  <div class="tab" data-mode="acronyms">Law Names</div>
+  <div class="tab" data-mode="holdings">Law → Requirement</div>
+  <div class="tab" data-mode="state">State Law Features</div>
+  <div class="tab" data-mode="pra">Private Right of Action Sort</div>
+  <div class="tab" data-mode="regulators">Regulator → Authority</div>
+  <div class="tab" data-mode="quiz">Quiz Mode</div>
+</div>
+
+<div class="stats" id="match-stats">
+  <span>Matched: <b id="matched">0</b>/<span id="total">0</span></span>
+  <button class="action" id="reset">Reshuffle</button>
+</div>
+<div class="grid" id="match-grid">
+  <div id="col-left" class="col"></div>
+  <div id="col-right" class="col"></div>
+</div>
+
+<div class="stats" id="sort-stats" style="display:none;">
+  <span>Sorted: <b id="sorted">0</b>/<span id="sort-total">0</span></span>
+  <button class="action" id="sort-reset">Reshuffle</button>
+</div>
+<div id="sort-area" style="display:none;">
+  <div class="sort-pool" id="sort-pool"></div>
+  <div class="sort-buckets">
+    <div class="bucket">
+      <div class="bucket-title">Has Private Right of Action</div>
+      <div id="bucket-yes"></div>
+    </div>
+    <div class="bucket">
+      <div class="bucket-title">No Private Right of Action</div>
+      <div id="bucket-no"></div>
+    </div>
+  </div>
+</div>
+
+<div id="quiz-area" style="display:none;">
+  <div class="stats">
+    <span>Score: <b id="quiz-score">0</b>/<span id="quiz-total-answered">0</span></span>
+    <button class="action" id="quiz-reset">New Question Set</button>
+  </div>
+  <div style="font-size:11px;color:#888;margin-bottom:8px;">Question <span id="quiz-num">1</span> of <span id="quiz-count">20</span></div>
+  <div id="quiz-question" style="font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.4;"></div>
+  <div id="quiz-options" style="display:flex;flex-direction:column;gap:8px;"></div>
+  <div id="quiz-explanation" style="display:none;margin-top:12px;padding:10px;border-radius:8px;font-size:12.5px;line-height:1.5;"></div>
+  <button class="action" id="quiz-next" style="display:none;margin-top:12px;width:100%;">Next Question</button>
+</div>
+
+<div id="win"></div>
+
+<script>
+const DATA = {
+  cases: [
+    ["Olmstead v. United States", "Warrantless wiretap w/o trespass ruled not a search"],
+    ["Katz v. United States", "Established the reasonable expectation of privacy test"],
+    ["Griswold v. Connecticut", "Established a zone of privacy via Bill of Rights penumbras"],
+    ["Roe v. Wade", "Extended Griswold's privacy zone to abortion; overruled by Dobbs in 2022"],
+    ["Dobbs v. Jackson Women's Health", "Overruled Roe, holding there is no constitutional right to abortion"],
+    ["United States v. Miller", "Held bank records belong to the bank, not the customer"],
+    ["Smith v. Maryland", "Established third-party doctrine for phone metadata"],
+    ["California v. Greenwood", "Held no privacy expectation in curbside trash"],
+    ["United States v. Jones", "Held physical GPS attachment is a trespass and a search"],
+    ["Kyllo v. United States", "Held thermal imaging of a home without entry is a search"],
+    ["Riley v. California", "Held a warrant is generally required to search a cell phone"],
+    ["United States v. Warshak", "Held email content requires a warrant regardless of storage age"],
+    ["Carpenter v. United States", "Carved a narrow exception for historical cell-site data"],
+    ["FTC v. Sperry & Hutchinson", "Established the three-factor test for an unfair trade practice"],
+    ["FTC v. Wyndham Worldwide", "Publishing a privacy policy without real security is unfair"],
+    ["Smyth v. Pillsbury Co.", "No privacy expectation in company-provided email accounts"],
+    ["Zurcher v. Stanford Daily", "Upheld warrants against journalists, prompting the Privacy Protection Act"]
+  ],
+  acronyms: [
+    ["GLBA", "Gramm-Leach-Bliley Act"],
+    ["FCRA", "Fair Credit Reporting Act"],
+    ["HIPAA", "Health Insurance Portability and Accountability Act"],
+    ["COPPA", "Children's Online Privacy Protection Act"],
+    ["TCPA", "Telephone Consumer Protection Act"],
+    ["FERPA", "Family Educational Rights and Privacy Act"],
+    ["GINA", "Genetic Information Nondiscrimination Act"],
+    ["BIPA", "Biometric Information Privacy Act"],
+    ["FACTA", "Fair and Accurate Credit Transactions Act"],
+    ["VPPA", "Video Privacy Protection Act"],
+    ["RFPA", "Right to Financial Privacy Act"],
+    ["ECPA", "Electronic Communications Privacy Act"]
+  ],
+  holdings: [
+    ["GLBA", "Requires opt-out before sharing with nonaffiliated third parties"],
+    ["FACTA", "Requires credit receipts truncated to last 5 digits, no expiration date"],
+    ["COPPA", "Requires verifiable parental consent before collecting under-13 data"],
+    ["FCRA", "Requires an adverse action notice when a report factors into a denial"],
+    ["TCPA", "Requires prior express written consent for autodialed texts to cells"],
+    ["CAN-SPAM", "Requires a valid physical postal address in commercial email"],
+    ["BIPA", "Requires written informed consent before collecting biometric data"],
+    ["VPPA", "Requires separate written consent before disclosing viewing history"],
+    ["RFPA", "Requires formal legal process before the government can access bank records"],
+    ["HIPAA", "Requires a Business Associate Agreement before a vendor touches PHI"]
+  ],
+  state: [
+    ["CCPA/CPRA", "Only comprehensive state privacy law with a private right of action"],
+    ["Colorado CPA", "Mandates recognition of universal opt-out signals like GPC"],
+    ["Virginia VCDPA", "Uses a narrower monetary-only definition of 'sale'"],
+    ["Connecticut CTDPA", "Cure period expired December 31, 2024"],
+    ["Florida FDBR", "Cure period granted only at the regulator's discretion"]
+  ],
+  regulators: [
+    ["FTC", "Enforces Section 5 unfair or deceptive practices broadly"],
+    ["CFPB", "Specialized authority over consumer financial products"],
+    ["HHS Office for Civil Rights", "Enforces HIPAA Privacy and Security Rules"],
+    ["EEOC", "Enforces ADA and GINA employment protections"],
+    ["FCC", "Enforces TCPA telemarketing and robocall restrictions"],
+    ["State Attorneys General", "Primary enforcers of most state comprehensive privacy laws"]
+  ]
+};
+
+const PRA_ITEMS = [
+  ["TCPA", true], ["FDCPA", true], ["VPPA", true], ["DPPA", true], ["RFPA", true],
+  ["BIPA", true], ["GIPA", true], ["FCRA (limited civil suit provision)", true],
+  ["GLBA", false], ["HIPAA", false], ["FERPA", false], ["COPPA", false],
+  ["VCDPA", false], ["Colorado CPA", false], ["CTDPA", false], ["CUBI (Texas)", false]
+];
+
+const QUIZ_BANK = [
+  { q: "Which case established the third-party doctrine for financial records?", options: ["Smith v. Maryland","United States v. Miller","Katz v. United States","Carpenter v. United States"], correct: 1, exp: "Miller (1976) held bank records belong to the bank, not the customer. RFPA was later passed to close this statutory gap." },
+  { q: "Which case established the 'reasonable expectation of privacy' test?", options: ["Olmstead v. United States","Griswold v. Connecticut","Katz v. United States","Jones v. United States"], correct: 2, exp: "Katz (1967) overturned Olmstead's trespass-only theory and established the dominant Fourth Amendment framework used ever since." },
+  { q: "Which case carved a narrow exception to the third-party doctrine for historical cell-site location data?", options: ["Riley v. California","Carpenter v. United States","Kyllo v. United States","Jones v. United States"], correct: 1, exp: "Carpenter (2018) required a warrant for comprehensive historical CSLI, without overturning the third-party doctrine generally." },
+  { q: "Which case held that email content requires a warrant regardless of how long it has been stored?", options: ["United States v. Warshak","United States v. Miller","Smith v. Maryland","Zurcher v. Stanford Daily"], correct: 0, exp: "Warshak (6th Cir., 2010) overrode ECPA's original 180-day carve-out; DOJ policy now requires warrants for email content nationwide." },
+  { q: "Which case established the three-factor test for an 'unfair' trade practice under FTC Section 5?", options: ["FTC v. Wyndham Worldwide","FTC v. Sperry & Hutchinson","Smyth v. Pillsbury Co.","Zurcher v. Stanford Daily"], correct: 1, exp: "Sperry & Hutchinson (1972) established: does it injure consumers, violate public policy, or is it unethical/unscrupulous." },
+  { q: "Which case held that publishing a privacy policy without implementing adequate security is itself an unfair practice?", options: ["FTC v. Sperry & Hutchinson","Smyth v. Pillsbury Co.","FTC v. Wyndham Worldwide","Riley v. California"], correct: 2, exp: "The Third Circuit upheld FTC enforcement against Wyndham for repeated breaches despite published privacy promises." },
+  { q: "Which case held employees generally have no reasonable expectation of privacy in company-provided email?", options: ["Smyth v. Pillsbury Co.","Katz v. United States","Riley v. California","Zurcher v. Stanford Daily"], correct: 0, exp: "Smyth v. Pillsbury (1996) is the foundational case for employer email monitoring, though never appealed to a higher court." },
+  { q: "Which case prompted Congress to pass the Privacy Protection Act of 1980?", options: ["Riley v. California","Carpenter v. United States","Zurcher v. Stanford Daily","Kyllo v. United States"], correct: 2, exp: "Zurcher upheld a warrant against a student newspaper; Congress responded by generally requiring a subpoena instead for journalists." },
+  { q: "Which law requires a written information security program under its Safeguards Rule?", options: ["FCRA","GLBA","HIPAA","COPPA"], correct: 1, exp: "GLBA's Safeguards Rule requires a WISP scaled to the institution's size and complexity." },
+  { q: "Which law requires credit card receipts to be truncated to the last 5 digits with no expiration date printed?", options: ["FCRA","GLBA","FACTA","TCPA"], correct: 2, exp: "FACTA's Disposal Rule and truncation requirement is a specific, testable numeric detail." },
+  { q: "Which law requires prior express written consent before autodialed marketing texts to a cell phone?", options: ["CAN-SPAM","TCPA","COPPA","VPPA"], correct: 1, exp: "TCPA uses an opt-in model for autodialed calls/texts to cells, unlike the general US opt-out default." },
+  { q: "Which law requires a valid physical postal address in commercial email?", options: ["CAN-SPAM","TCPA","GLBA","FCRA"], correct: 0, exp: "Confirmed directly from the FTC's own CAN-SPAM compliance guide — a real, specific, enforceable requirement." },
+  { q: "Which law's rights transfer from parent to student at age 18 or college enrollment?", options: ["COPPA","GINA","FERPA","ADA"], correct: 2, exp: "FERPA's 'eligible student' transition is a commonly tested detail." },
+  { q: "Which law includes a voluntary wellness program exception for otherwise-restricted data collection?", options: ["ADA","GINA","HIPAA","COPPA"], correct: 1, exp: "GINA restricts genetic information use in employment but allows voluntary wellness programs with safeguards." },
+  { q: "Which of the following has NO private right of action?", options: ["TCPA","BIPA","HIPAA","VPPA"], correct: 2, exp: "HIPAA is enforced exclusively by HHS OCR — no individual right to sue. The other three all include private rights of action." },
+  { q: "Which of the following DOES include a private right of action?", options: ["GLBA","FERPA","BIPA","Colorado Privacy Act"], correct: 2, exp: "Illinois' BIPA is the primary driver of biometric litigation nationally, unlike Texas's CUBI (AG-only enforcement)." },
+  { q: "CCPA's private right of action is best described as:", options: ["A broad right to sue over any violation","Narrow — limited to breaches of unencrypted, nonredacted personal info","Identical in scope to BIPA","Only available to California residents over 65"], correct: 1, exp: "CCPA's PRA is narrow and specific — $100-$750 statutory damages, only for qualifying data breaches." },
+  { q: "Which agency enforces HIPAA's Privacy and Security Rules?", options: ["FTC","HHS Office for Civil Rights","CFPB","EEOC"], correct: 1, exp: "OCR is the exclusive enforcer — no private right of action exists under HIPAA." },
+  { q: "Which agency enforces the ADA and GINA in employment contexts?", options: ["EEOC","FTC","FCC","DOJ"], correct: 0, exp: "The EEOC handles charges related to disability and genetic information discrimination in employment." },
+  { q: "Which agency has specialized authority over consumer financial products, distinct from the FTC's general authority?", options: ["CFPB","FCC","HHS OCR","SEC"], correct: 0, exp: "CFPB and FTC jurisdiction can overlap depending on entity type and conduct — neither automatically displaces the other." },
+  { q: "Which ECPA title governs real-time interception of communications content, requiring the highest legal standard?", options: ["Title III (Pen Register Act)","Title I (Wiretap Act)","Title II (Stored Communications Act)","Title IV"], correct: 1, exp: "Title I requires a warrant based on probable cause — the highest of ECPA's three standards." },
+  { q: "Which ECPA title covers non-content metadata like dialed phone numbers, with the lowest legal standard?", options: ["Title I (Wiretap Act)","Title II (Stored Communications Act)","Title III (Pen Register Act)","FISA"], correct: 2, exp: "Title III only requires certification that the info is relevant to an investigation — much lower than a warrant." },
+  { q: "Which law requires telecom carriers to build networks with the technical capability to assist lawful surveillance?", options: ["ECPA","CALEA","FISA","RFPA"], correct: 1, exp: "CALEA is a technical infrastructure mandate, distinct from ECPA's restrictive/protective framework." },
+  { q: "What legal mechanism generally provides the BROADEST scope of access to documents in civil litigation?", options: ["Subpoena","Warrant","Discovery requests","Interrogatories"], correct: 2, exp: "Discovery is the broad umbrella category (including interrogatories, document requests, depositions) — warrants don't even apply in civil litigation." },
+  { q: "Under RFPA, how long does a customer generally have to object to a government request for their bank records?", options: ["24 hours","10 days (14 if mailed)","30 days","90 days"], correct: 1, exp: "A specific, testable numeric detail — RFPA's objection window before delayed-notice court orders come into play." },
+  { q: "Which state's privacy law mandates recognition of universal opt-out signals like Global Privacy Control?", options: ["Virginia","Colorado","Florida","Texas"], correct: 1, exp: "Colorado's CPA requires businesses to honor universal opt-out mechanisms, not just website-specific opt-out links." },
+  { q: "Which state's comprehensive privacy law's cure period expired January 1, 2025?", options: ["Connecticut","Colorado","Florida","Virginia"], correct: 1, exp: "Colorado's 60-day cure period is no longer available as of that date — worth knowing sunset dates aren't static." },
+  { q: "Which state's biometric law has NO private right of action, unlike Illinois' BIPA?", options: ["Texas (CUBI)","Illinois (GIPA)","California","Washington"], correct: 0, exp: "Texas's CUBI is structurally similar to BIPA but enforced only by the state Attorney General." },
+  { q: "The New York SHIELD Act expanded breach notification's definition of 'private information' to include:", options: ["Only Social Security numbers","Biometric data and email addresses combined with passwords/security questions","Only financial account numbers","Only health records"], correct: 1, exp: "SHIELD broadened the older, narrower NY breach law to cover these newer, previously-uncovered data categories." },
+  { q: "Under HIPAA, disclosing PHI for Treatment, Payment, and Healthcare Operations (TPO) generally:", options: ["Always requires written authorization","Is permitted without specific patient authorization","Is entirely prohibited","Requires a court order"], correct: 1, exp: "TPO is the practical backbone letting healthcare function without an authorization form for every routine internal use." },
+  { q: "Under HIPAA's minimum necessary standard, when does the standard NOT apply?", options: ["Never — it always applies","When disclosing to the patient or their personal representative","When disclosing to any third party","When the data is encrypted"], correct: 1, exp: "Patients are generally entitled to their full record — the standard's purpose doesn't apply to disclosures back to them." },
+  { q: "A HIPAA breach affecting fewer than 500 individuals still requires:", options: ["No notification at all","Individual and HHS notification, but not immediate media notification","Only HHS notification","Immediate media notification"], correct: 1, exp: "The 500-person threshold triggers immediate media notification specifically — individual/HHS notification applies regardless of size." },
+  { q: "Under HITECH, Business Associates now have:", options: ["No HIPAA obligations at all","Direct statutory liability, enforceable by OCR independent of the covered entity","Liability only through contract with the covered entity","Full covered entity status"], correct: 1, exp: "Before HITECH, BA liability ran only through contract. HITECH extended direct regulatory exposure to BAs themselves." },
+  { q: "Which federal law prohibits most private employers from requiring a polygraph test as a condition of employment?", options: ["ADA","Employee Polygraph Protection Act","NLRA","Title VII"], correct: 1, exp: "EPPA (1988) — narrow exemptions exist for government employers, security firms, and controlled substance handlers." },
+  { q: "The NLRA protects which type of employee activity from employer retaliation?", options: ["Sharing customer data with competitors","Discussing wages and working conditions with coworkers ('concerted activity')","Violating confidentiality agreements","Accessing unauthorized trade secrets"], correct: 1, exp: "Employer surveillance targeting concerted activity — even informal wage discussions — can be an unfair labor practice." },
+  { q: "Does FCRA's employment disclosure/authorization requirement apply to internal promotion decisions, not just new hires?", options: ["No, only initial hiring","Yes — it applies whenever a consumer report is used for employment purposes generally","Only after 1 year of employment","Only for executive-level promotions"], correct: 1, exp: "FCRA's 'employment purposes' definition covers promotion, reassignment, and retention decisions too." },
+  { q: "A biometric time clock at work generally requires, under laws like BIPA:", options: ["No consent — it's a condition of employment","Written informed consent before collection, even in an employment context", "Only a posted sign at the entrance","Approval from the EEOC first"], correct: 1, exp: "BIPA doesn't carve out an employment exemption — this is one of the most litigated fact patterns under the statute." },
+  { q: "Which of the following correctly distinguishes GLBA's general opt-out from FCRA's affiliate marketing opt-out?", options: ["They are identical with no differences","GLBA's general opt-out has no expiration; FCRA's affiliate marketing opt-out has a 5-year minimum renewal cycle","FCRA's opt-out never expires; GLBA's expires annually","Both expire after 30 days"], correct: 1, exp: "Two distinct opt-out regimes governed by different regulations — don't conflate them." },
+  { q: "A 'furnisher' under FCRA is best described as:", options: ["The consumer requesting their own report","An entity like a bank that reports account data TO a consumer reporting agency","The CRA itself","A regulator overseeing compliance"], correct: 1, exp: "Furnisher → CRA → User is the data flow; furnishers supply the original data into the system." },
+  { q: "Under FCRA, a 'reseller' of consumer reports:", options: ["Has no FCRA obligations since it didn't compile the data originally","Is itself considered a type of consumer reporting agency with independent obligations","Is entirely exempt if it discloses its reseller status","Only the original CRA bears responsibility"], correct: 1, exp: "Resellers can't hide behind not having originally compiled the data — FCRA treats them as their own CRA category." }
+];
+
+let quizQuestions = [];
+let quizIndex = 0;
+let quizScore = 0;
+let quizAnswered = 0;
+
+function initQuiz() {
+  quizQuestions = shuffle(QUIZ_BANK).slice(0, 20);
+  quizIndex = 0;
+  quizScore = 0;
+  quizAnswered = 0;
+  document.getElementById('quiz-count').textContent = quizQuestions.length;
+  document.getElementById('win').style.display = 'none';
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const item = quizQuestions[quizIndex];
+  document.getElementById('quiz-num').textContent = quizIndex + 1;
+  document.getElementById('quiz-score').textContent = quizScore;
+  document.getElementById('quiz-total-answered').textContent = quizAnswered;
+  document.getElementById('quiz-question').textContent = item.q;
+  document.getElementById('quiz-explanation').style.display = 'none';
+  document.getElementById('quiz-next').style.display = 'none';
+
+  const optsEl = document.getElementById('quiz-options');
+  optsEl.innerHTML = '';
+  const optionOrder = item.options.map((text, i) => ({ text, isCorrect: i === item.correct }));
+  optionOrder.forEach((opt) => {
+    const btn = document.createElement('div');
+    btn.className = 'card';
+    btn.style.cursor = 'pointer';
+    btn.textContent = opt.text;
+    btn.addEventListener('click', () => answerQuiz(btn, opt, optionOrder));
+    optsEl.appendChild(btn);
+  });
+}
+
+function answerQuiz(btnEl, opt, allOpts) {
+  if (btnEl.dataset.locked) return;
+  document.querySelectorAll('#quiz-options .card').forEach(el => el.dataset.locked = '1');
+  quizAnswered++;
+  const item = quizQuestions[quizIndex];
+
+  [...document.querySelectorAll('#quiz-options .card')].forEach((el, i) => {
+    if (allOpts[i].isCorrect) {
+      el.classList.add('done');
+    } else if (el === btnEl && !opt.isCorrect) {
+      el.classList.add('wrong');
+    }
+  });
+
+  if (opt.isCorrect) quizScore++;
+
+  const expEl = document.getElementById('quiz-explanation');
+  expEl.style.display = 'block';
+  expEl.style.background = opt.isCorrect ? '#dcfce7' : '#fee2e2';
+  expEl.style.color = opt.isCorrect ? '#166534' : '#991b1b';
+  expEl.textContent = (opt.isCorrect ? 'Correct. ' : 'Not quite. ') + item.exp;
+
+  document.getElementById('quiz-score').textContent = quizScore;
+  document.getElementById('quiz-total-answered').textContent = quizAnswered;
+
+  if (quizIndex < quizQuestions.length - 1) {
+    document.getElementById('quiz-next').style.display = 'block';
+  } else {
+    document.getElementById('win').style.display = 'block';
+    document.getElementById('win').textContent = 'Quiz complete: ' + quizScore + '/' + quizQuestions.length + '. Click New Question Set to try a fresh mix.';
+  }
+}
+
+document.getElementById('quiz-next').addEventListener('click', () => {
+  quizIndex++;
+  renderQuizQuestion();
+});
+document.getElementById('quiz-reset').addEventListener('click', initQuiz);
+
+let mode = 'cases';
+let leftItems, rightItems, selectedLeft, matched, wrongFlash;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function initMatch() {
+  document.getElementById('sort-stats').style.display = 'none';
+  document.getElementById('sort-area').style.display = 'none';
+  document.getElementById('match-stats').style.display = 'flex';
+  document.getElementById('match-grid').style.display = 'grid';
+
+  const pairs = DATA[mode];
+  leftItems = pairs.map((p, i) => ({ id: i, text: p[0], done: false }));
+  rightItems = shuffle(pairs.map((p, i) => ({ id: i, text: p[1], done: false })));
+  selectedLeft = null;
+  matched = 0;
+  wrongFlash = null;
+  document.getElementById('total').textContent = pairs.length;
+  document.getElementById('win').style.display = 'none';
+  renderMatch();
+}
+
+function renderMatch() {
+  const colLeft = document.getElementById('col-left');
+  const colRight = document.getElementById('col-right');
+  colLeft.innerHTML = '';
+  colRight.innerHTML = '';
+
+  leftItems.forEach((c) => {
+    const el = document.createElement('div');
+    el.className = 'card left';
+    if (c.done) el.className += ' done';
+    else if (selectedLeft === c.id) el.className += ' selected';
+    el.textContent = c.text;
+    if (!c.done) el.addEventListener('click', () => selectLeft(c.id));
+    colLeft.appendChild(el);
+  });
+
+  rightItems.forEach((h) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    if (h.done) el.className += ' done';
+    if (wrongFlash === h.id) el.className += ' wrong';
+    el.textContent = h.text;
+    if (!h.done) el.addEventListener('click', () => selectRight(h.id));
+    colRight.appendChild(el);
+  });
+
+  document.getElementById('matched').textContent = matched;
+}
+
+function selectLeft(id) {
+  selectedLeft = id;
+  wrongFlash = null;
+  renderMatch();
+}
+
+function selectRight(id) {
+  if (selectedLeft === null) return;
+  if (selectedLeft === id) {
+    leftItems.find(c => c.id === id).done = true;
+    rightItems.find(h => h.id === id).done = true;
+    matched++;
+    selectedLeft = null;
+    renderMatch();
+    if (matched === DATA[mode].length) {
+      document.getElementById('win').style.display = 'block';
+      document.getElementById('win').textContent = 'All ' + matched + ' matched. Switch modes or reshuffle to keep going.';
+    }
+  } else {
+    wrongFlash = id;
+    renderMatch();
+    setTimeout(() => { wrongFlash = null; renderMatch(); }, 700);
+  }
+}
+
+// Sort game (Private Right of Action)
+let sortPool, sortedCount;
+
+function initSort() {
+  document.getElementById('match-stats').style.display = 'none';
+  document.getElementById('match-grid').style.display = 'none';
+  document.getElementById('sort-stats').style.display = 'flex';
+  document.getElementById('sort-area').style.display = 'block';
+
+  sortPool = shuffle(PRA_ITEMS.map((p, i) => ({ id: i, text: p[0], isYes: p[1], placed: false })));
+  sortedCount = 0;
+  document.getElementById('sort-total').textContent = PRA_ITEMS.length;
+  document.getElementById('win').style.display = 'none';
+  document.getElementById('bucket-yes').innerHTML = '';
+  document.getElementById('bucket-no').innerHTML = '';
+  renderSort();
+}
+
+let activeSortItem = null;
+
+function renderSort() {
+  const pool = document.getElementById('sort-pool');
+  pool.innerHTML = '';
+  sortPool.filter(i => !i.placed).forEach((item) => {
+    const el = document.createElement('div');
+    el.className = 'sort-chip';
+    if (activeSortItem === item.id) el.style.background = '#1d4ed8', el.style.color = '#fff', el.style.borderColor = '#1d4ed8';
+    el.textContent = item.text;
+    el.addEventListener('click', () => { activeSortItem = item.id; renderSort(); });
+    pool.appendChild(el);
+  });
+  document.getElementById('sorted').textContent = sortedCount;
+}
+
+function placeInBucket(isYesBucket) {
+  if (activeSortItem === null) return;
+  const item = sortPool.find(i => i.id === activeSortItem);
+  if (item.isYes === isYesBucket) {
+    item.placed = true;
+    sortedCount++;
+    const bucketEl = document.getElementById(isYesBucket ? 'bucket-yes' : 'bucket-no');
+    const div = document.createElement('div');
+    div.className = 'bucket-item';
+    div.textContent = item.text;
+    bucketEl.appendChild(div);
+    activeSortItem = null;
+    renderSort();
+    if (sortedCount === PRA_ITEMS.length) {
+      document.getElementById('win').style.display = 'block';
+      document.getElementById('win').textContent = 'All sorted correctly. Reshuffle to try again.';
+    }
+  } else {
+    const chip = [...document.querySelectorAll('.sort-chip')].find(c => c.textContent === item.text);
+    if (chip) {
+      chip.classList.add('wrong');
+      setTimeout(() => chip.classList.remove('wrong'), 700);
+    }
+  }
+}
+
+document.getElementById('bucket-yes').parentElement.addEventListener('click', () => placeInBucket(true));
+document.getElementById('bucket-no').parentElement.addEventListener('click', () => placeInBucket(false));
+
+document.getElementById('reset').addEventListener('click', () => {
+  if (mode === 'pra') initSort(); else initMatch();
+});
+document.getElementById('sort-reset').addEventListener('click', initSort);
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    mode = tab.dataset.mode;
+
+    document.getElementById('match-stats').style.display = 'none';
+    document.getElementById('match-grid').style.display = 'none';
+    document.getElementById('sort-stats').style.display = 'none';
+    document.getElementById('sort-area').style.display = 'none';
+    document.getElementById('quiz-area').style.display = 'none';
+    document.getElementById('win').style.display = 'none';
+
+    if (mode === 'pra') {
+      document.getElementById('mode-sub').textContent = 'Tap a law below, then tap the correct bucket.';
+      initSort();
+    } else if (mode === 'quiz') {
+      document.getElementById('mode-sub').textContent = 'Multiple choice — 20 random questions per set, covering all topics.';
+      document.getElementById('quiz-area').style.display = 'block';
+      initQuiz();
+    } else {
+      document.getElementById('mode-sub').textContent = 'Tap a card on the left, then its match on the right.';
+      document.getElementById('match-stats').style.display = 'flex';
+      document.getElementById('match-grid').style.display = 'grid';
+      initMatch();
+    }
+  });
+});
+
+document.querySelector('.tab[data-mode="cases"]').classList.add('active');
+initMatch();
+</script>
+</body>
+</html>
