@@ -1,7 +1,7 @@
 # CIPP/US Study Games
 
 Interactive drills for the IAPP Certified Information Privacy Professional/US exam.
-Six matching decks, a sorting game, and a 40-question quiz bank, in a single HTML
+Seven matching decks, a sorting game, and a 40-question quiz bank, in a single HTML
 file with no dependencies.
 
 **Play it:** https://davidalex89.github.io/cipp-us-study-games/
@@ -14,6 +14,7 @@ file with no dependencies.
 | Court Cases | 16 cases matched to their holdings, Olmstead through Carpenter |
 | Law Names | 12 acronyms expanded |
 | Law → Requirement | The specific obligation each statute imposes |
+| ECPA Titles | The three ECPA titles, their legal standards, and the two things they get confused with |
 | State Law Features | What distinguishes each state comprehensive law |
 | Private Right of Action Sort | Which of 16 statutes let individuals sue |
 | Regulator → Authority | Who enforces what |

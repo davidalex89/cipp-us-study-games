@@ -94,6 +94,7 @@
   <div class="tab" data-mode="cases">Court Cases</div>
   <div class="tab" data-mode="acronyms">Law Names</div>
   <div class="tab" data-mode="holdings">Law → Requirement</div>
+  <div class="tab" data-mode="ecpa">ECPA Titles</div>
   <div class="tab" data-mode="state">State Law Features</div>
   <div class="tab" data-mode="pra">Private Right of Action Sort</div>
   <div class="tab" data-mode="regulators">Regulator → Authority</div>
@@ -195,6 +196,14 @@ const DATA = {
     ["VPPA", "Requires separate written consent before disclosing viewing history"],
     ["RFPA", "Requires formal legal process before the government can access bank records"],
     ["HIPAA", "Requires a Business Associate Agreement before a vendor touches PHI"]
+  ],
+  ecpa: [
+    ["Title I — Wiretap Act", "Real-time interception of content; court order on probable cause plus necessity and minimisation, the highest standard"],
+    ["Title II — Stored Communications Act", "Content and records already held by a provider; warrant, §2703(d) order or subpoena depending on what is sought"],
+    ["Title III — Pen Register / Trap and Trace", "Real-time non-content dialing, routing, addressing and signalling data; the lowest standard"],
+    ["§2703(d) order", "The middle Stored Communications Act standard: specific and articulable facts, less than probable cause"],
+    ["Omnibus Crime Control Act Title III (1968)", "The original federal wiretap law that ECPA Title I amended — why 'Title III' is ambiguous"],
+    ["CALEA (1994)", "Not part of ECPA; requires carriers to build interception capability into their networks"]
   ],
   state: [
     ["CCPA/CPRA", "Only comprehensive state privacy law with a private right of action"],
